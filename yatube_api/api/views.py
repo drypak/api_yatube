@@ -7,7 +7,7 @@ from api.permissions import IsOwnerOrReadOnly
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    
+
     """
     Поддерживает CRUD операции:
     GET, POST, PATCH, DELETE
