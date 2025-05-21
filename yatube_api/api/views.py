@@ -1,23 +1,25 @@
-from rest_framework import viewsets
-from rest_framework import permissions
-from posts.models import Comment, Post, Group
+from api.permissions import IsOwnerOrReadOnlyPermission
+from api.serializers import CommentSerializer, GroupSerializer, PostSerializer
 from django.shortcuts import get_object_or_404
-from api.serializers import CommentSerializer, PostSerializer, GroupSerializer
-from api.permissions import IsOwnerOrReadOnly
+from posts.models import Comment, Group, Post
+from rest_framework import permissions, viewsets
 
 
 class PostViewSet(viewsets.ModelViewSet):
-
     """
     Поддерживает CRUD операции:
-    GET, POST, PATCH, DELETE
+    GET, POST, PATCH, DELETE, UPDATE
     """
+
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [
+        permissions.IsAuthenticated, 
+        IsOwnerOrReadOnlyPermission
+    ]
 
     def perform_create(self, serializer):
-        """при создании поста, автоматически присваиваем автора."""
+        """При создании поста, автоматически присваиваем автора."""
         serializer.save(
             author=self.request.user,
         )
@@ -34,13 +36,21 @@ class CommentViewSet(viewsets.ModelViewSet):
     """Вьюсет для комментариев."""
 
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [
+        permissions.IsAuthenticated,
+        IsOwnerOrReadOnlyPermission
+    ]
+
+    def get_post(self):
+        return get_object_or_404(Post, id=self.kwargs.get('post_id'))
 
     def get_queryset(self):
-
-        post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
+        post = self.get_post()
         return Comment.objects.filter(post=post)
 
     def perform_create(self, serializer):
-        post = get_object_or_404(Post, id=self.kwargs.get('post_id'))
-        serializer.save(author=self.request.user, post=post)
+        post = self.get_post()
+        serializer.save(
+            author=self.request.user,
+            post=post,
+        )
